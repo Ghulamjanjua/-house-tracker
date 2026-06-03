@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House Build Tracker</title>
+<style>
+:root{--navy:#1B3A5C;--gold:#B8862A;--green:#1A5C36;--red:#A02020;--amber:#7A5000;--bg:#F7F8FA;--surface:#FFFFFF;--border:#E2E6EA;--text:#1A1A1A;--muted:#6B7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+nav{background:var(--navy);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.nb{color:#fff;font-weight:600;font-size:15px}.nb span{color:#B8C8D8;font-weight:400;font-size:12px;margin-left:8px}
+.nt{display:flex;gap:4px}
+.ntb{background:none;border:none;color:#B8C8D8;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.ntb:hover{background:rgba(255,255,255,.1);color:#fff}.ntb.active{background:rgba(255,255,255,.15);color:#fff}
+.sdot{width:7px;height:7px;border-radius:50%;background:#4CAF50;display:inline-block;margin-left:6px;vertical-align:middle}
+.sdot.off{background:#EF5350}.sdot.spin{background:#FFA726;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.page{display:none;padding:24px 20px;max-width:860px;margin:0 auto}.page.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.ct{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.kg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.kl{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:6px}
+.kv{font-size:21px;font-weight:600;color:var(--text)}.kv.g{color:var(--green)}.kv.r{color:var(--red)}.kv.a{color:var(--gold)}
+.cattbl{width:100%;border-collapse:collapse;font-size:14px}
+.cattbl th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.cattbl td{padding:10px 12px;border-bottom:1px solid var(--border)}.cattbl tr:last-child td{border-bottom:none}.cattbl tr:hover td{background:var(--bg)}
+.cc{font-size:11px;font-weight:700;color:var(--navy);background:#EBF2FA;padding:2px 7px;border-radius:4px}
+.pw{background:#E8ECF0;border-radius:99px;height:6px;min-width:80px}
+.pb{height:6px;border-radius:99px;background:var(--navy);transition:width .3s}.pb.ov{background:var(--red)}.pb.wn{background:var(--gold)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg2{display:flex;flex-direction:column;gap:5px}.fg2.full{grid-column:1/-1}
+label{font-size:13px;font-weight:500;color:var(--text)}
+input,select,textarea{border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.08)}
+textarea{resize:vertical;min-height:70px}
+.hint{font-size:12px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:7px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.bp{background:var(--navy);color:#fff}.bp:hover{background:#234872}.bp:disabled{background:#8AA5BC;cursor:not-allowed}
+.bg{background:none;border:1px solid var(--border);color:var(--text)}.bg:hover{background:var(--bg)}
+.bd{background:none;border:1px solid #FCA5A5;color:var(--red);font-size:13px;padding:6px 12px}.bd:hover{background:#FDEAEA}
+.bsm{padding:5px 10px;font-size:13px}
+.bpd{background:#E6F4ED;border:1px solid #86EFAC;color:var(--green);font-size:11px;padding:2px 9px;border-radius:99px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bup{background:#FDF6E3;border:1px solid #FCD34D;color:var(--amber);font-size:11px;padding:2px 9px;border-radius:99px;font-weight:600;cursor:pointer;white-space:nowrap}
+.il{display:flex;flex-direction:column}
+.ir{display:grid;grid-template-columns:1fr 120px 90px 95px 110px;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);font-size:14px}
+.ir:last-child{border-bottom:none}.ir:hover{background:var(--bg)}
+.lh{display:grid;grid-template-columns:1fr 120px 90px 95px 110px;gap:10px;padding:8px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);border-radius:10px 10px 0 0}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:500;opacity:0;transition:opacity .25s;z-index:999;pointer-events:none;max-width:300px}
+.toast.show{opacity:1}.toast.err{background:var(--red)}
+.mb{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+.mb.open{display:flex}
+.mo{background:var(--surface);border-radius:12px;padding:24px;width:100%;max-width:520px}
+.mt{font-size:17px;font-weight:600;margin-bottom:20px}
+.ma{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.st{font-size:17px;font-weight:600}
+.fb{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.fb select,.fb input{max-width:180px}
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.ei{font-size:32px;margin-bottom:10px}
+.empty p{font-size:14px}
+.tr2 td{font-weight:600;border-top:2px solid var(--border)!important;padding-top:12px!important}
+.bn{border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.bw{background:#FDF6E3;border:1px solid #FCD34D;color:var(--amber)}
+.bok{background:#E6F4ED;border:1px solid #86EFAC;color:var(--green)}
+.be{background:#FDEAEA;border:1px solid #FCA5A5;color:var(--red)}
+.sp{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}.sp:last-child{border-bottom:none}
+.sn{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.sb h4{font-size:14px;font-weight:600;margin-bottom:4px}.sb p{font-size:13px;color:var(--muted);line-height:1.6}
+.sb code{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:var(--navy)}
+.sb a{color:var(--navy);font-weight:500}
+.br2{display:grid;grid-template-columns:80px 1fr 160px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}.br2:last-child{border-bottom:none}
+@media(max-width:600px){.kg{grid-template-columns:1fr 1fr}.fg{grid-template-columns:1fr}.ir{grid-template-columns:1fr 100px}.ir>:nth-child(n+3){display:none}.lh{grid-template-columns:1fr 100px}.lh>:nth-child(n+3){display:none}nav{padding:0 12px}.nb span{display:none}.page{padding:16px 12px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nb">🏗 House Tracker <span>24×54 ft — Rawalpindi</span></div>
+  <div class="nt">
+    <button class="ntb active" onclick="go('dashboard')">Dashboard</button>
+    <button class="ntb" onclick="go('add')">+ Add</button>
+    <button class="ntb" onclick="go('invoices')">Invoices</button>
+    <button class="ntb" onclick="go('settings')">Settings</button>
+  </div>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div id="conn-banner"></div>
+  <div class="kg">
+    <div class="kpi"><div class="kl">Total Budget</div><div class="kv a" id="k-bud">—</div></div>
+    <div class="kpi"><div class="kl">Total Spent</div><div class="kv" id="k-spt">—</div></div>
+    <div class="kpi"><div class="kl">Remaining</div><div class="kv g" id="k-rem">—</div></div>
+  </div>
+  <div class="kg" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+    <div class="kpi"><div class="kl">Outstanding (Unpaid)</div><div class="kv" id="k-unp">—</div></div>
+    <div class="kpi"><div class="kl">Total Invoices</div><div class="kv" id="k-cnt">—</div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Budget vs Actual by Category</div>
+    <table class="cattbl">
+      <thead><tr><th>Category</th><th style="text-align:right">Budget</th><th style="text-align:right">Spent</th><th style="text-align:right">Remaining</th><th style="min-width:100px">Used</th></tr></thead>
+      <tbody id="cat-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card"><div class="ct">Recent Transactions</div><div id="recent-list"></div></div>
+</div>
+
+<!-- ADD -->
+<div id="page-add" class="page">
+  <div class="sh"><div class="st">Record Invoice</div></div>
+  <div class="card">
+    <div class="fg">
+      <div class="fg2"><label>Supplier Name *</label><input type="text" id="f-sup" placeholder="e.g. Madina Building Materials" autocomplete="off"></div>
+      <div class="fg2"><label>Amount (PKR) *</label><input type="number" id="f-amt" placeholder="e.g. 333000" min="1"></div>
+      <div class="fg2">
+        <label>Budget Category *</label>
+        <select id="f-cat">
+          <option value="">— Select —</option>
+          <option value="STR">STR — Structure &amp; Civil</option>
+          <option value="FIN">FIN — Finishing &amp; Tiling</option>
+          <option value="JOI">JOI — Joinery &amp; Metalwork</option>
+          <option value="PLM">PLM — Plumbing</option>
+          <option value="ELE">ELE — Electrical</option>
+          <option value="PAI">PAI — Paint &amp; Ceiling</option>
+          <option value="WOD">WOD — Woodwork</option>
+          <option value="OTH">OTH — Other</option>
+        </select>
+      </div>
+      <div class="fg2"><label>Date *</label><input type="date" id="f-dt"></div>
+      <div class="fg2 full"><label>Narration</label><textarea id="f-not" placeholder="e.g. Cement 2nd delivery, 100 bags — bill in folder A"></textarea><span class="hint">Brief description. Physical bill stays in your folder.</span></div>
+      <div class="fg2">
+        <label>Payment Status</label>
+        <select id="f-sts"><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select>
+      </div>
+      <div class="fg2"><label>Bill Reference (optional)</label><input type="text" id="f-ref" placeholder="e.g. Folder A, Bill #12"></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px;align-items:center">
+      <button class="btn bp" id="save-btn" onclick="saveInv()">Save Invoice</button>
+      <button class="btn bg" onclick="clearF()">Clear</button>
+      <span id="save-lbl" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICES -->
+<div id="page-invoices" class="page">
+  <div class="sh"><div class="st">All Invoices</div><div id="inv-ttl" style="font-size:13px;color:var(--muted)"></div></div>
+  <div class="fb">
+    <select id="fc" onchange="renderInv()"><option value="">All categories</option><option value="STR">STR</option><option value="FIN">FIN</option><option value="JOI">JOI</option><option value="PLM">PLM</option><option value="ELE">ELE</option><option value="PAI">PAI</option><option value="WOD">WOD</option><option value="OTH">OTH</option></select>
+    <select id="fs" onchange="renderInv()"><option value="">All statuses</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select>
+    <input type="text" id="fq" placeholder="Search supplier…" oninput="renderInv()" style="max-width:200px">
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="lh"><span>Supplier / Narration</span><span style="text-align:right">Amount</span><span>Category</span><span>Date</span><span style="text-align:right">Status / Actions</span></div>
+    <div class="il" id="inv-list"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="card"><div class="ct">Google Sheets Connection</div><div id="conn-detail"></div></div>
+  <div id="setup-steps" class="card" style="display:none">
+    <div class="ct">Setup Instructions — Follow in Order</div>
+    <div class="sp"><div class="sn">1</div><div class="sb"><h4>Create a new Google Sheet</h4><p>Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> and create a blank spreadsheet. Name it <strong>House Build Tracker</strong>. Copy the Sheet ID from the URL — the long string between <code>/d/</code> and <code>/edit</code>. You won't need to paste it anywhere; the Apps Script handles the connection.</p></div></div>
+    <div class="sp"><div class="sn">2</div><div class="sb"><h4>Open Apps Script editor</h4><p>In your Sheet, click <strong>Extensions → Apps Script</strong>. Delete all existing code. Paste the entire contents of the <code>Code.gs</code> file you downloaded. Press <strong>Ctrl+S</strong> to save.</p></div></div>
+    <div class="sp"><div class="sn">3</div><div class="sb"><h4>Run the setup function once</h4><p>In the Apps Script editor, select <code>setupSheets</code> from the function dropdown (top toolbar) and click <strong>Run ▶</strong>. Accept any permissions Google asks for. This creates the Invoices, Budget, and Audit tabs in your Sheet automatically.</p></div></div>
+    <div class="sp"><div class="sn">4</div><div class="sb"><h4>Deploy as Web App</h4><p>Click <strong>Deploy → New deployment</strong>. Click the gear ⚙ icon next to "Type" and select <strong>Web app</strong>. Set <em>Execute as</em>: <strong>Me</strong>. Set <em>Who has access</em>: <strong>Anyone</strong>. Click <strong>Deploy</strong>. Click <strong>Authorize access</strong> and follow the prompts. Copy the <strong>Web app URL</strong> — it ends in <code>/exec</code>.</p></div></div>
+    <div class="sp"><div class="sn">5</div><div class="sb"><h4>Paste URL below and connect</h4><p>Paste the Web app URL into the field below and click <strong>Connect</strong>. Your data will sync to Google Sheets from that point forward.</p></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Web App URL</div>
+    <div class="fg2" style="margin-bottom:12px">
+      <label>Apps Script Web App URL</label>
+      <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <span class="hint">From Apps Script → Deploy → Manage deployments → Copy URL</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn bp bsm" onclick="connectScript()">Connect</button>
+      <button class="btn bg bsm" onclick="testConn()">Test Connection</button>
+      <span id="test-res" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Category Budgets (PKR)</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Update at any time. Saves to your Google Sheet.</p>
+    <div id="bud-inputs"></div>
+    <div style="margin-top:16px"><button class="btn bp bsm" onclick="saveBud()">Save Budget</button></div>
+  </div>
+  <div class="card">
+    <div class="ct">Data</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn bg bsm" onclick="exportCSV()">Export CSV</button>
+      <button class="btn bg bsm" onclick="refreshData()">Refresh from Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="mb" id="edit-modal">
+  <div class="mo">
+    <div class="mt">Edit Invoice</div>
+    <div class="fg">
+      <div class="fg2"><label>Supplier</label><input type="text" id="e-sup"></div>
+      <div class="fg2"><label>Amount (PKR)</label><input type="number" id="e-amt" min="1"></div>
+      <div class="fg2"><label>Category</label><select id="e-cat"><option value="STR">STR — Structure &amp; Civil</option><option value="FIN">FIN — Finishing &amp; Tiling</option><option value="JOI">JOI — Joinery &amp; Metalwork</option><option value="PLM">PLM — Plumbing</option><option value="ELE">ELE — Electrical</option><option value="PAI">PAI — Paint &amp; Ceiling</option><option value="WOD">WOD — Woodwork</option><option value="OTH">OTH — Other</option></select></div>
+      <div class="fg2"><label>Date</label><input type="date" id="e-dt"></div>
+      <div class="fg2 full"><label>Narration</label><textarea id="e-not"></textarea></div>
+      <div class="fg2"><label>Status</label><select id="e-sts"><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select></div>
+      <div class="fg2"><label>Bill Reference</label><input type="text" id="e-ref"></div>
+    </div>
+    <div class="ma">
+      <button class="btn bg" onclick="closeModal()">Cancel</button>
+      <button class="btn bd bsm" onclick="delInv()">Delete</button>
+      <button class="btn bp" onclick="updateInv()">Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATS=[
+  {code:'STR',name:'Structure & Civil',  budget:2907600},
+  {code:'FIN',name:'Finishing & Tiling', budget:284000},
+  {code:'JOI',name:'Joinery & Metalwork',budget:490000},
+  {code:'PLM',name:'Plumbing',           budget:490000},
+  {code:'ELE',name:'Electrical',         budget:335000},
+  {code:'PAI',name:'Paint & Ceiling',    budget:375000},
+  {code:'WOD',name:'Woodwork',           budget:700000},
+  {code:'OTH',name:'Other',              budget:0},
+];
+const CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
+const K={URL:'hbt_url',INV:'hbt_inv',BUD:'hbt_bud'};
+
+let S={invoices:[],budget:Object.fromEntries(CATS.map(c=>[c.code,c.budget])),url:'',connected:false};
+
+function lg(k,d=null){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}}
+function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function loadL(){S.url=localStorage.getItem(K.URL)||'';S.invoices=lg(K.INV,[]);S.budget=lg(K.BUD,Object.fromEntries(CATS.map(c=>[c.code,c.budget])));S.connected=!!S.url}
+function saveL(){ls(K.INV,S.invoices);ls(K.BUD,S.budget)}
+
+async function api(payload){
+  if(!S.url)throw new Error('Not connected. Add your Apps Script URL in Settings.');
+  const r=await fetch(S.url,{method:'POST',body:JSON.stringify(payload)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const t=await r.text();
+  try{return JSON.parse(t)}catch{throw new Error('Invalid response. Check deployment.')}
+}
+
+async function syncSheets(){
+  if(!S.connected)return;
+  setSpin(true);
+  try{
+    const d=await api({action:'getAll'});
+    if(d.error)throw new Error(d.error);
+    S.invoices=d.invoices||[];
+    S.budget=d.budget||S.budget;
+    saveL();
+    setBanner(true);
+  }catch(e){setBanner(false,e.message)}
+  finally{setSpin(false)}
+}
+
+function setSpin(v){
+  document.querySelectorAll('.sdot').forEach(d=>{d.className='sdot'+(v?' spin':S.connected?' ':' off')});
+}
+
+function setBanner(ok,msg){
+  const el=document.getElementById('conn-banner');
+  if(!el)return;
+  el.innerHTML=ok?'':
+    `<div class="bn bw">⚠ Could not reach Google Sheets${msg?' — '+msg:''}. Showing cached data. <a href="#" onclick="go('settings')" style="color:var(--amber);font-weight:600;margin-left:4px">Settings →</a></div>`;
+}
+
+function renderConnDetail(){
+  const url=S.url;
+  const det=document.getElementById('conn-detail');
+  const stp=document.getElementById('setup-steps');
+  const inp=document.getElementById('script-url');
+  if(url)inp.value=url;
+  if(url&&S.connected){
+    det.innerHTML=`<div class="bn bok" style="margin:0">✓ Connected — data syncs to Google Sheets automatically.<br><span style="font-size:12px;margin-top:4px;display:block;opacity:.8">${url.slice(0,70)}…</span></div>`;
+    stp.style.display='none';
+  }else{
+    det.innerHTML=`<div class="bn bw" style="margin:0">Not connected yet. Follow the setup steps below, then paste your Web App URL.</div>`;
+    stp.style.display='block';
+  }
+}
+
+function connectScript(){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url||!url.includes('script.google.com')){toast('Enter a valid Apps Script URL','err');return}
+  localStorage.setItem(K.URL,url);
+  S.url=url;S.connected=true;
+  toast('Connecting…');
+  syncSheets().then(()=>{renderDB();renderBudInputs();renderConnDetail();toast('Connected to Google Sheets ✓')});
+}
+
+async function testConn(){
+  const url=document.getElementById('script-url').value.trim()||S.url;
+  const el=document.getElementById('test-res');
+  el.textContent='Testing…';
+  try{
+    const r=await fetch(url);
+    const j=await r.json();
+    el.textContent=j.status==='ok'?'✓ Connection successful':'⚠ Unexpected response';
+    el.style.color=j.status==='ok'?'var(--green)':'var(--amber)';
+  }catch(e){el.textContent='✗ Failed: '+e.message;el.style.color='var(--red)'}
+}
+
+const fmt=n=>'PKR '+Math.round(n||0).toLocaleString('en-PK');
+const fmtD=d=>{if(!d)return'—';try{return new Date(d+'T12:00:00').toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'2-digit'})}catch{return d}};
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().split('T')[0];
+
+function renderDB(){
+  const inv=S.invoices,bud=S.budget;
+  const tB=Object.values(bud).reduce((a,b)=>a+(b||0),0);
+  const tS=inv.reduce((a,i)=>a+Number(i.amount||0),0);
+  const unp=inv.filter(i=>i.status==='unpaid').reduce((a,i)=>a+Number(i.amount||0),0);
+  const rem=tB-tS;
+  document.getElementById('k-bud').textContent=fmt(tB);
+  document.getElementById('k-spt').textContent=fmt(tS);
+  document.getElementById('k-unp').textContent=fmt(unp);
+  document.getElementById('k-cnt').textContent=inv.length;
+  const re=document.getElementById('k-rem');
+  re.textContent=(rem<0?'−':'')+fmt(Math.abs(rem));
+  re.className='kv '+(rem<0?'r':rem<tB*.15?'a':'g');
+
+  const tb=document.getElementById('cat-tbody');
+  tb.innerHTML='';
+  let tBt=0,tSt=0;
+  CATS.forEach(c=>{
+    const b=bud[c.code]||0,s=inv.filter(i=>i.category===c.code).reduce((a,i)=>a+Number(i.amount||0),0);
+    const r=b-s,pct=b>0?Math.min((s/b)*100,100):0,ov=s>b&&b>0,wn=!ov&&pct>75;
+    tBt+=b;tSt+=s;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="cc">${c.code}</span><span style="font-size:13px;margin-left:6px">${c.name}</span></td>
+      <td style="text-align:right;font-size:13px">${fmt(b)}</td>
+      <td style="text-align:right;font-size:13px;font-weight:${s>0?600:400}">${s>0?fmt(s):'—'}</td>
+      <td style="text-align:right;font-size:13px;color:${ov?'var(--red)':r<b*.1?'var(--amber)':'var(--green)'}">${ov?'−'+fmt(Math.abs(r)):fmt(r)}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="pw" style="flex:1"><div class="pb ${ov?'ov':wn?'wn':''}" style="width:${Math.round(pct)}%"></div></div><span style="font-size:11px;color:var(--muted);min-width:30px">${Math.round(pct)}%</span></div></td>`;
+    tb.appendChild(tr);
+  });
+  const tf=document.createElement('tr');tf.className='tr2';
+  const tR=tBt-tSt;
+  tf.innerHTML=`<td><strong>Total</strong></td><td style="text-align:right">${fmt(tBt)}</td><td style="text-align:right">${fmt(tSt)}</td><td style="text-align:right;color:${tR<0?'var(--red)':'var(--green)'}">${tR<0?'−':''}${fmt(Math.abs(tR))}</td><td></td>`;
+  tb.appendChild(tf);
+
+  const rec=[...inv].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  const rl=document.getElementById('recent-list');
+  if(!rec.length){rl.innerHTML='<div class="empty"><div class="ei">📋</div><p>No invoices yet. <a href="#" onclick="go(\'add\')" style="color:var(--navy)">Add your first one →</a></p></div>';return}
+  rl.innerHTML=rec.map(i=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0;margin-right:12px">
+        <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.supplier)}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(i.notes||'')} <span class="cc" style="margin-left:4px">${i.category}</span></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:600;font-size:14px">${fmt(i.amount)}</div>
+        <div style="margin-top:3px"><span class="${i.status==='paid'?'bpd':'bup'}">${i.status}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderInv(){
+  const cf=document.getElementById('fc').value,sf=document.getElementById('fs').value,qf=(document.getElementById('fq').value||'').toLowerCase();
+  let list=S.invoices.filter(i=>{
+    if(cf&&i.category!==cf)return false;
+    if(sf&&i.status!==sf)return false;
+    if(qf&&!i.supplier.toLowerCase().includes(qf)&&!(i.notes||'').toLowerCase().includes(qf))return false;
+    return true;
+  }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('inv-ttl').textContent=`${list.length} invoice${list.length!==1?'s':''} — ${fmt(list.reduce((a,i)=>a+Number(i.amount||0),0))}`;
+  const el=document.getElementById('inv-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="ei">📭</div><p>No invoices match your filters.</p></div>';return}
+  el.innerHTML=list.map(i=>`
+    <div class="ir">
+      <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.supplier)}</div><div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.notes||'')}${i.ref?' · <em>'+esc(i.ref)+'</em>':''}</div></div>
+      <div style="text-align:right;font-weight:600">${fmt(i.amount)}</div>
+      <div><span class="cc">${i.category}</span></div>
+      <div style="font-size:13px;color:var(--muted)">${fmtD(i.date)}</div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">
+        <span class="${i.status==='paid'?'bpd':'bup'}" onclick="togglePaid('${i.id}')">${i.status==='paid'?'Paid':'Unpaid'}</span>
+        <button class="btn bg bsm" onclick="openEdit('${i.id}')" style="padding:3px 8px;font-size:12px">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveInv(){
+  const sup=document.getElementById('f-sup').value.trim(),amt=Number(document.getElementById('f-amt').value),cat=document.getElementById('f-cat').value,dt=document.getElementById('f-dt').value,not=document.getElementById('f-not').value.trim(),sts=document.getElementById('f-sts').value,ref=document.getElementById('f-ref').value.trim();
+  if(!sup){toast('Enter supplier name','err');return}
+  if(!amt||amt<=0){toast('Enter a valid amount','err');return}
+  if(!cat){toast('Select a budget category','err');return}
+  if(!dt){toast('Select a date','err');return}
+  const inv={id:uid(),supplier:sup,amount:amt,category:cat,date:dt,notes:not,status:sts,ref,createdAt:new Date().toISOString()};
+  const btn=document.getElementById('save-btn'),lbl=document.getElementById('save-lbl');
+  btn.disabled=true;lbl.textContent='Saving…';
+  S.invoices.push(inv);saveL();
+  if(S.connected){
+    try{const r=await api({action:'addInvoice',data:inv});if(r.error)throw new Error(r.error);if(r.id)inv.id=r.id;lbl.textContent='✓ Saved to Sheets'}
+    catch(e){lbl.textContent='⚠ Saved locally (Sheets sync failed)';console.warn(e.message)}
+  }else{lbl.textContent='✓ Saved locally'}
+  btn.disabled=false;clearF();toast('Invoice saved ✓');setTimeout(()=>lbl.textContent='',3000);go('dashboard');
+}
+
+function clearF(){
+  ['f-sup','f-amt','f-not','f-ref'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-cat').value='';document.getElementById('f-sts').value='unpaid';document.getElementById('f-dt').value=today();
+}
+
+async function togglePaid(id){
+  const inv=S.invoices.find(i=>i.id===id);if(!inv)return;
+  inv.status=inv.status==='paid'?'unpaid':'paid';saveL();renderInv();renderDB();
+  toast(inv.status==='paid'?'Marked as paid':'Marked as unpaid');
+  if(S.connected){try{await api({action:'togglePaid',id})}catch(e){console.warn(e.message)}}
+}
+
+let EID=null;
+function openEdit(id){
+  const inv=S.invoices.find(i=>i.id===id);if(!inv)return;EID=id;
+  document.getElementById('e-sup').value=inv.supplier;document.getElementById('e-amt').value=inv.amount;
+  document.getElementById('e-cat').value=inv.category;document.getElementById('e-dt').value=inv.date;
+  document.getElementById('e-not').value=inv.notes||'';document.getElementById('e-sts').value=inv.status;
+  document.getElementById('e-ref').value=inv.ref||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('edit-modal').classList.remove('open');EID=null}
+
+async function updateInv(){
+  if(!EID)return;
+  const idx=S.invoices.findIndex(i=>i.id===EID);if(idx===-1)return;
+  const u={...S.invoices[idx],supplier:document.getElementById('e-sup').value.trim(),amount:Number(document.getElementById('e-amt').value),category:document.getElementById('e-cat').value,date:document.getElementById('e-dt').value,notes:document.getElementById('e-not').value.trim(),status:document.getElementById('e-sts').value,ref:document.getElementById('e-ref').value.trim(),updatedAt:new Date().toISOString()};
+  S.invoices[idx]=u;saveL();closeModal();renderInv();renderDB();toast('Invoice updated ✓');
+  if(S.connected){try{await api({action:'updateInvoice',data:u})}catch(e){console.warn(e.message)}}
+}
+
+async function delInv(){
+  if(!EID)return;
+  if(!confirm('Delete this invoice?'))return;
+  const id=EID;S.invoices=S.invoices.filter(i=>i.id!==id);saveL();closeModal();renderInv();renderDB();toast('Invoice deleted');
+  if(S.connected){try{await api({action:'deleteInvoice',id})}catch(e){console.warn(e.message)}}
+}
+
+function renderBudInputs(){
+  document.getElementById('bud-inputs').innerHTML=CATS.map(c=>`
+    <div class="br2"><span class="cc">${c.code}</span><span style="font-size:14px">${c.name}</span><input type="number" id="b-${c.code}" value="${S.budget[c.code]||0}" min="0" style="text-align:right"></div>`).join('');
+}
+
+async function saveBud(){
+  const b={};CATS.forEach(c=>{b[c.code]=Number(document.getElementById('b-'+c.code).value)||0});
+  S.budget=b;saveL();toast('Budget saved ✓');
+  if(S.connected){try{await api({action:'saveBudget',data:b})}catch{toast('Budget saved locally (Sheets sync failed)','err')}}
+  renderDB();
+}
+
+function exportCSV(){
+  if(!S.invoices.length){toast('No data to export');return}
+  const h=['Date','Supplier','Amount PKR','Category','Category Name','Status','Narration','Bill Ref','Created At'];
+  const rows=S.invoices.map(i=>[i.date,i.supplier,i.amount,i.category,CMAP[i.category]||'',i.status,i.notes||'',i.ref||'',i.createdAt]);
+  const csv=[h,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:'house-tracker-'+today()+'.csv'});
+  a.click();toast('CSV exported');
+}
+
+async function refreshData(){
+  if(!S.connected){toast('Not connected to Sheets','err');return}
+  toast('Refreshing…');await syncSheets();renderDB();renderInv();toast('Refreshed ✓');
+}
+
+function go(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ntb').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const m={dashboard:0,add:1,invoices:2,settings:3};
+  document.querySelectorAll('.ntb')[m[p]].classList.add('active');
+  if(p==='dashboard')renderDB();
+  if(p==='invoices')renderInv();
+  if(p==='settings'){renderBudInputs();renderConnDetail()}
+}
+
+let TT;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');
+  clearTimeout(TT);TT=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+
+loadL();
+document.getElementById('f-dt').value=today();
+renderDB();
+if(S.connected)syncSheets().then(()=>renderDB());
+</script>
+</body>
+</html>
