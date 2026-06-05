@@ -349,16 +349,18 @@ async function syncSheets(){
   try{
     const d=await api({action:'getAll'});
     if(d.error)throw new Error(d.error);
-    S.invoices=d.invoices||[];
-    S.budget=d.budget||S.budget;
-    S.bankTxns=d.bankTxns||[];
-    S.cashTxns=d.cashTxns||[];
-    // Load categories from Sheet — this is the permanent source of truth
+    // Replace local data completely with Sheet data — never merge
+    S.invoices  = d.invoices  || [];
+    S.budget    = d.budget    || S.budget;
+    S.bankTxns  = d.bankTxns  || [];
+    S.cashTxns  = d.cashTxns  || [];
+    // Load categories from Sheet
     if(d.categories&&d.categories.length){
       CATS=d.categories;
       CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
       ls(K.CATS,CATS);
     }
+    // Overwrite local cache with Sheet data
     saveL();
     setBanner(true);
   }catch(e){setBanner(false,e.message)}
@@ -629,7 +631,8 @@ function switchLedger(l){
 
 function getLatestBalance(txns){
   if(!txns||!txns.length)return 0;
-  return Number(txns[txns.length-1].balance||0);
+  const sorted=[...txns].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  return Number(sorted[sorted.length-1].balance||0);
 }
 
 function renderLedger(){
