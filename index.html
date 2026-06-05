@@ -761,7 +761,7 @@ function renderCatManage(){
   }).join('');
 }
 
-function addCategory(){
+async function addCategory(){
   const code=document.getElementById('new-cat-code').value.trim().toUpperCase();
   const name=document.getElementById('new-cat-name').value.trim();
   const budget=Number(document.getElementById('new-cat-budget').value)||0;
@@ -783,7 +783,7 @@ function addCategory(){
   if(S.connected){try{await api({action:'saveCategories',categories:CATS})}catch(e){console.warn('Cat sync failed:',e.message)}}
 }
 
-function deleteCategory(code){
+async function deleteCategory(code){
   const used=S.invoices.filter(i=>i.category===code&&i.status!=='deleted').length;
   if(used>0){
     alert(`Cannot delete "${code}" — it has ${used} invoice${used!==1?'s':''} recorded against it. Reassign or delete those invoices first.`);
