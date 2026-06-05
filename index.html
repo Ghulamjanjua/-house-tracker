@@ -272,6 +272,7 @@ textarea{resize:vertical;min-height:60px}
       <div class="fg2"><label>Date</label><input type="date" id="e-dt"></div>
       <div class="fg2 full"><label>Narration</label><textarea id="e-not"></textarea></div>
       <div class="fg2"><label>Bill Reference</label><input type="text" id="e-ref"></div>
+      <div class="fg2" id="e-pm-wrap"><label>Paid By</label><select id="e-pm"><option value="">— Not paid —</option><option value="bank">Bank</option><option value="cash">Cash</option></select></div>
     </div>
     <div class="ma">
       <button class="btn bg2" onclick="closeModal('edit-modal')">Cancel</button>
@@ -577,13 +578,14 @@ function openEdit(id){
   document.getElementById('e-sup').value=inv.supplier;document.getElementById('e-amt').value=inv.amount;
   document.getElementById('e-cat').value=inv.category;document.getElementById('e-dt').value=inv.date;
   document.getElementById('e-not').value=inv.notes||'';document.getElementById('e-ref').value=inv.ref||'';
+  document.getElementById('e-pm').value=inv.payMethod||'';
   document.getElementById('edit-modal').classList.add('open');
 }
 
 async function updateInv(){
   if(!EID)return;
   const idx=S.invoices.findIndex(i=>i.id===EID);if(idx===-1)return;
-  const u={...S.invoices[idx],supplier:document.getElementById('e-sup').value.trim(),amount:Number(document.getElementById('e-amt').value),category:document.getElementById('e-cat').value,date:document.getElementById('e-dt').value,notes:document.getElementById('e-not').value.trim(),ref:document.getElementById('e-ref').value.trim(),updatedAt:new Date().toISOString()};
+  const u={...S.invoices[idx],supplier:document.getElementById('e-sup').value.trim(),amount:Number(document.getElementById('e-amt').value),category:document.getElementById('e-cat').value,date:document.getElementById('e-dt').value,notes:document.getElementById('e-not').value.trim(),ref:document.getElementById('e-ref').value.trim(),payMethod:document.getElementById('e-pm').value,updatedAt:new Date().toISOString()};
   S.invoices[idx]=u;saveL();closeModal('edit-modal');renderInv();renderDB();toast('Updated ✓');
   if(S.connected){try{await api({action:'updateInvoice',data:u})}catch(e){console.warn(e.message)}}
 }
@@ -618,30 +620,44 @@ function getLatestBalance(txns){
 }
 
 function renderLedger(){
-  const txns=currentLedger==='bank'?S.bankTxns:S.cashTxns;
-  const sorted=[...txns].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const bal=getLatestBalance(sorted);
+  // Strictly filter by current ledger — bank shows only bank, cash shows only cash
+  const txns=currentLedger==='bank'?[...S.bankTxns]:[...S.cashTxns];
+  const sorted=txns.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const bal=sorted.length?sorted[sorted.length-1].balance:0;
   const inTotal=sorted.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0);
   const outTotal=sorted.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
+  const label=currentLedger==='bank'?'Bank Balance':'Cash Balance';
 
+  document.getElementById('led-bal-lbl').textContent=label;
   document.getElementById('led-bal').textContent=fmt(bal);
   document.getElementById('led-in').textContent=fmt(inTotal);
   document.getElementById('led-out').textContent=fmt(outTotal);
 
   const el=document.getElementById('txn-list');
-  if(!sorted.length){el.innerHTML='<div class="empty"><div class="ei">🏦</div><p>No transactions yet. Set an opening balance to start.</p></div>';return}
+  if(!sorted.length){
+    el.innerHTML=`<div class="empty"><div class="ei">${currentLedger==='bank'?'🏦':'💵'}</div><p>${currentLedger==='bank'?'No bank transactions yet.':'No cash transactions yet.'} Set an opening balance to start.</p></div>`;
+    return;
+  }
+
+  // Show newest first, with running balance column
   el.innerHTML=[...sorted].reverse().map(t=>{
     const isIn=t.amount>0,isOpen=t.type==='opening';
-    const badge=isOpen?`<span class="topen">Opening</span>`:isIn?`<span class="tin">In</span>`:`<span class="tout">Out</span>`;
-    const linked=t.linkedInvoiceId?`<span style="font-size:10px;color:var(--muted)"> · linked invoice</span>`:'';
+    const badge=isOpen
+      ?`<span class="topen">Opening</span>`
+      :isIn
+        ?`<span class="tin">↑ In</span>`
+        :`<span class="tout">↓ Out</span>`;
+    const linkedNote=t.linkedInvoiceId
+      ?`<span style="font-size:10px;color:var(--muted);margin-left:4px">· invoice payment</span>`:'';
     return `<div class="txr">
       <div style="font-size:12px;color:var(--muted)">${fmtD(t.date)}</div>
-      <div><div style="font-size:13px">${esc(t.description)}${linked}</div></div>
+      <div style="min-width:0"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.description)}${linkedNote}</div></div>
       <div style="text-align:right">${badge}</div>
-      <div style="text-align:right;font-weight:600;font-size:13px;color:${t.amount<0?'var(--red)':'var(--green)'}">${t.amount<0?'−':'+'} ${fmt(Math.abs(t.amount))}</div>
+      <div style="text-align:right;font-weight:600;font-size:13px;color:${t.amount<0?'var(--red)':'var(--green)'}">${t.amount<0?'−':'+'} ${fmt(Math.abs(t.amount))}<div style="font-size:10px;color:var(--muted);font-weight:400">Bal: ${fmt(t.balance)}</div></div>
       <div style="text-align:right">
-        ${t.linkedInvoiceId?'<span style="font-size:11px;color:var(--muted)">Auto</span>':
-          `<button class="btn bg2 bsm" onclick="deleteTxn('${t.id}')" style="padding:2px 7px;font-size:11px;color:var(--red);border-color:#FCA5A5">Delete</button>`}
+        ${t.linkedInvoiceId
+          ?'<span style="font-size:11px;color:var(--muted)">Auto</span>'
+          :`<button class="btn bg2 bsm" onclick="deleteTxn('${t.id}')" style="padding:2px 7px;font-size:11px;color:var(--red);border-color:#FCA5A5">Delete</button>`}
       </div>
     </div>`;
   }).join('');
