@@ -353,6 +353,12 @@ async function syncSheets(){
     S.budget=d.budget||S.budget;
     S.bankTxns=d.bankTxns||[];
     S.cashTxns=d.cashTxns||[];
+    // Load categories from Sheet — this is the permanent source of truth
+    if(d.categories&&d.categories.length){
+      CATS=d.categories;
+      CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
+      ls(K.CATS,CATS);
+    }
     saveL();
     setBanner(true);
   }catch(e){setBanner(false,e.message)}
@@ -384,7 +390,14 @@ function connectScript(){
   if(!url||!url.includes('script.google.com')){toast('Enter a valid Apps Script URL','err');return}
   localStorage.setItem(K.URL,url);S.url=url;S.connected=true;
   toast('Connecting…');
-  syncSheets().then(()=>{rebuildCatDropdowns();renderDB();renderBudInputs();renderConnDetail();toast('Connected ✓')});
+  syncSheets().then(async ()=>{
+    rebuildCatDropdowns();
+    renderDB();
+    renderBudInputs();
+    renderConnDetail();
+    renderCatManage();
+    toast('Connected ✓');
+  });
 }
 
 async function testConn(){
@@ -766,6 +779,8 @@ function addCategory(){
   document.getElementById('new-cat-name').value='';
   document.getElementById('new-cat-budget').value='';
   toast('Category "'+code+'" added ✓');
+  // Persist to Sheet immediately
+  if(S.connected){try{await api({action:'saveCategories',categories:CATS})}catch(e){console.warn('Cat sync failed:',e.message)}}
 }
 
 function deleteCategory(code){
@@ -783,6 +798,8 @@ function deleteCategory(code){
   renderBudInputs();
   renderDB();
   toast('Category deleted');
+  // Persist to Sheet immediately
+  if(S.connected){try{await api({action:'saveCategories',categories:CATS})}catch(e){console.warn('Cat sync failed:',e.message)}}
 }
 
 // ── BUDGET ────────────────────────────────────────────────────
@@ -811,7 +828,16 @@ function exportCSV(){
 
 async function refreshData(){
   if(!S.connected){toast('Not connected','err');return}
-  toast('Refreshing…');await syncSheets();renderDB();renderInv();renderLedger();toast('Refreshed ✓');
+  toast('Refreshing…');
+  await syncSheets();
+  rebuildCatDropdowns();
+  renderDB();
+  renderInv();
+  renderLedger();
+  // Also update cat manage list if on settings page
+  const catManage=document.getElementById('cat-manage-list');
+  if(catManage)renderCatManage();
+  toast('Refreshed ✓');
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────
