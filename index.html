@@ -125,20 +125,7 @@ textarea{resize:vertical;min-height:60px}
     <div class="fg">
       <div class="fg2"><label>Supplier Name *</label><input type="text" id="f-sup" placeholder="e.g. Madina Building Materials" autocomplete="off"></div>
       <div class="fg2"><label>Amount (PKR) *</label><input type="number" id="f-amt" placeholder="e.g. 333000" min="1"></div>
-      <div class="fg2">
-        <label>Budget Category *</label>
-        <select id="f-cat">
-          <option value="">— Select —</option>
-          <option value="STR">STR — Structure &amp; Civil</option>
-          <option value="FIN">FIN — Finishing &amp; Tiling</option>
-          <option value="JOI">JOI — Joinery &amp; Metalwork</option>
-          <option value="PLM">PLM — Plumbing</option>
-          <option value="ELE">ELE — Electrical</option>
-          <option value="PAI">PAI — Paint &amp; Ceiling</option>
-          <option value="WOD">WOD — Woodwork</option>
-          <option value="OTH">OTH — Other</option>
-        </select>
-      </div>
+      <div class="fg2"><label>Budget Category *</label><select id="f-cat"><option value="">— Select —</option></select></div>
       <div class="fg2"><label>Date *</label><input type="date" id="f-dt"></div>
       <div class="fg2 full"><label>Narration</label><textarea id="f-not" placeholder="e.g. Cement 2nd delivery, 100 bags — bill in folder A"></textarea><span class="hint">Brief description. Physical bill stays in your folder.</span></div>
       <div class="fg2">
@@ -166,7 +153,7 @@ textarea{resize:vertical;min-height:60px}
 <div id="page-invoices" class="page">
   <div class="sh"><div class="st">All Invoices</div><div id="inv-ttl" style="font-size:12px;color:var(--muted)"></div></div>
   <div class="fb">
-    <select id="fc" onchange="renderInv()"><option value="">All categories</option><option value="STR">STR</option><option value="FIN">FIN</option><option value="JOI">JOI</option><option value="PLM">PLM</option><option value="ELE">ELE</option><option value="PAI">PAI</option><option value="WOD">WOD</option><option value="OTH">OTH</option></select>
+    <select id="fc" onchange="renderInv()"><option value="">All categories</option></select>
     <select id="fs" onchange="renderInv()"><option value="">All statuses</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select>
     <input type="text" id="fq" placeholder="Search…" oninput="renderInv()" style="max-width:160px">
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer"><input type="checkbox" id="show-deleted" onchange="renderInv()" style="width:auto"> Show deleted</label>
@@ -246,6 +233,20 @@ textarea{resize:vertical;min-height:60px}
     </div>
   </div>
   <div class="card">
+    <div class="ct">Expense Categories</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Add or remove categories. Categories with existing invoices cannot be deleted.</p>
+    <div id="cat-manage-list"></div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <p style="font-size:12px;font-weight:600;margin-bottom:10px">Add New Category</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg2" style="flex:0 0 90px"><label>Code (3-4 letters)</label><input type="text" id="new-cat-code" placeholder="e.g. EXT" maxlength="4" style="text-transform:uppercase"></div>
+        <div class="fg2" style="flex:1;min-width:160px"><label>Category Name</label><input type="text" id="new-cat-name" placeholder="e.g. External Works"></div>
+        <div class="fg2" style="flex:0 0 140px"><label>Budget (PKR)</label><input type="number" id="new-cat-budget" placeholder="0" min="0"></div>
+        <button class="btn bp bsm" onclick="addCategory()" style="margin-bottom:1px">Add Category</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
     <div class="ct">Category Budgets (PKR)</div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Update at any time. Saves to your Google Sheet.</p>
     <div id="bud-inputs"></div>
@@ -267,7 +268,7 @@ textarea{resize:vertical;min-height:60px}
     <div class="fg">
       <div class="fg2"><label>Supplier</label><input type="text" id="e-sup"></div>
       <div class="fg2"><label>Amount (PKR)</label><input type="number" id="e-amt" min="1"></div>
-      <div class="fg2"><label>Category</label><select id="e-cat"><option value="STR">STR — Structure &amp; Civil</option><option value="FIN">FIN — Finishing &amp; Tiling</option><option value="JOI">JOI — Joinery &amp; Metalwork</option><option value="PLM">PLM — Plumbing</option><option value="ELE">ELE — Electrical</option><option value="PAI">PAI — Paint &amp; Ceiling</option><option value="WOD">WOD — Woodwork</option><option value="OTH">OTH — Other</option></select></div>
+      <div class="fg2"><label>Category</label><select id="e-cat"></select></div>
       <div class="fg2"><label>Date</label><input type="date" id="e-dt"></div>
       <div class="fg2 full"><label>Narration</label><textarea id="e-not"></textarea></div>
       <div class="fg2"><label>Bill Reference</label><input type="text" id="e-ref"></div>
@@ -302,7 +303,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="toast" id="toast"></div>
 
 <script>
-const CATS=[
+const DEFAULT_CATS=[
   {code:'STR',name:'Structure & Civil',  budget:2907600},
   {code:'FIN',name:'Finishing & Tiling', budget:284000},
   {code:'JOI',name:'Joinery & Metalwork',budget:490000},
@@ -312,8 +313,9 @@ const CATS=[
   {code:'WOD',name:'Woodwork',           budget:700000},
   {code:'OTH',name:'Other',              budget:0},
 ];
-const CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
-const K={URL:'hbt_url',INV:'hbt_inv',BUD:'hbt_bud',BANK:'hbt_bank',CASH:'hbt_cash'};
+let CATS=[...DEFAULT_CATS];
+let CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
+const K={URL:'hbt_url',INV:'hbt_inv',BUD:'hbt_bud',BANK:'hbt_bank',CASH:'hbt_cash',CATS:'hbt_cats'};
 
 let S={invoices:[],budget:Object.fromEntries(CATS.map(c=>[c.code,c.budget])),bankTxns:[],cashTxns:[],url:'',connected:false};
 let currentLedger='bank';
@@ -322,13 +324,16 @@ function lg(k,d=null){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 function loadL(){
   S.url=localStorage.getItem(K.URL)||'';
+  const savedCats=lg(K.CATS,null);
+  if(savedCats&&savedCats.length) CATS=savedCats;
+  CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
   S.invoices=lg(K.INV,[]);
   S.budget=lg(K.BUD,Object.fromEntries(CATS.map(c=>[c.code,c.budget])));
   S.bankTxns=lg(K.BANK,[]);
   S.cashTxns=lg(K.CASH,[]);
   S.connected=!!S.url;
 }
-function saveL(){ls(K.INV,S.invoices);ls(K.BUD,S.budget);ls(K.BANK,S.bankTxns);ls(K.CASH,S.cashTxns)}
+function saveL(){ls(K.INV,S.invoices);ls(K.BUD,S.budget);ls(K.BANK,S.bankTxns);ls(K.CASH,S.cashTxns);ls(K.CATS,CATS)}
 
 async function api(payload){
   if(!S.url)throw new Error('Not connected.');
@@ -378,7 +383,7 @@ function connectScript(){
   if(!url||!url.includes('script.google.com')){toast('Enter a valid Apps Script URL','err');return}
   localStorage.setItem(K.URL,url);S.url=url;S.connected=true;
   toast('Connecting…');
-  syncSheets().then(()=>{renderDB();renderBudInputs();renderConnDetail();toast('Connected ✓')});
+  syncSheets().then(()=>{rebuildCatDropdowns();renderDB();renderBudInputs();renderConnDetail();toast('Connected ✓')});
 }
 
 async function testConn(){
@@ -696,6 +701,74 @@ function recalcLocalArray(arr){
   arr.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(t=>{bal+=Number(t.amount||0);t.balance=bal;});
 }
 
+// ── CATEGORY MANAGEMENT ──────────────────────────────────────
+function rebuildCatDropdowns(){
+  CMAP=Object.fromEntries(CATS.map(c=>[c.code,c.name]));
+  const opts=CATS.map(c=>`<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+  const blankOpt='<option value="">— Select —</option>';
+  const fcat=document.getElementById('f-cat');
+  const ecat=document.getElementById('e-cat');
+  const fc=document.getElementById('fc');
+  if(fcat)fcat.innerHTML=blankOpt+opts;
+  if(ecat)ecat.innerHTML=opts;
+  if(fc)fc.innerHTML='<option value="">All categories</option>'+CATS.map(c=>`<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+}
+
+function renderCatManage(){
+  const el=document.getElementById('cat-manage-list');
+  if(!el)return;
+  if(!CATS.length){el.innerHTML='<p style="font-size:13px;color:var(--muted)">No categories yet.</p>';return}
+  el.innerHTML=CATS.map(c=>{
+    const used=S.invoices.filter(i=>i.category===c.code&&i.status!=='deleted').length;
+    return `<div style="display:grid;grid-template-columns:70px 1fr 100px 80px;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span class="cc">${c.code}</span>
+      <span style="font-size:13px">${c.name}</span>
+      <span style="font-size:12px;color:var(--muted)">${used} invoice${used!==1?'s':''}</span>
+      ${used>0
+        ? `<span style="font-size:11px;color:var(--muted);text-align:right">In use</span>`
+        : `<button class="btn bd bsm" onclick="deleteCategory('${c.code}')" style="justify-self:end">Delete</button>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function addCategory(){
+  const code=document.getElementById('new-cat-code').value.trim().toUpperCase();
+  const name=document.getElementById('new-cat-name').value.trim();
+  const budget=Number(document.getElementById('new-cat-budget').value)||0;
+  if(!code||code.length<2){toast('Enter a code (2-4 letters)','err');return}
+  if(!name){toast('Enter a category name','err');return}
+  if(CATS.find(c=>c.code===code)){toast('Code "'+code+'" already exists','err');return}
+  CATS.push({code,name,budget});
+  S.budget[code]=budget;
+  saveL();
+  rebuildCatDropdowns();
+  renderCatManage();
+  renderBudInputs();
+  renderDB();
+  document.getElementById('new-cat-code').value='';
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-budget').value='';
+  toast('Category "'+code+'" added ✓');
+}
+
+function deleteCategory(code){
+  const used=S.invoices.filter(i=>i.category===code&&i.status!=='deleted').length;
+  if(used>0){
+    alert(`Cannot delete "${code}" — it has ${used} invoice${used!==1?'s':''} recorded against it. Reassign or delete those invoices first.`);
+    return;
+  }
+  if(!confirm(`Delete category "${code}"? This cannot be undone.`))return;
+  CATS=CATS.filter(c=>c.code!==code);
+  delete S.budget[code];
+  saveL();
+  rebuildCatDropdowns();
+  renderCatManage();
+  renderBudInputs();
+  renderDB();
+  toast('Category deleted');
+}
+
 // ── BUDGET ────────────────────────────────────────────────────
 function renderBudInputs(){
   document.getElementById('bud-inputs').innerHTML=CATS.map(c=>`
@@ -735,7 +808,7 @@ function go(p){
   if(p==='dashboard')renderDB();
   if(p==='invoices')renderInv();
   if(p==='ledger')renderLedger();
-  if(p==='settings'){renderBudInputs();renderConnDetail()}
+  if(p==='settings'){renderBudInputs();renderConnDetail();renderCatManage();rebuildCatDropdowns()}
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('open')}
@@ -749,6 +822,7 @@ function toast(msg,type=''){
 
 // ── INIT ──────────────────────────────────────────────────────
 loadL();
+rebuildCatDropdowns();
 document.getElementById('f-dt').value=today();
 document.getElementById('tx-dt').value=today();
 document.getElementById('ob-dt').value=today();
